@@ -23,14 +23,16 @@ class Coordinator:
         self.execution_driver = SeleniumExecutorDriver(
             chromedriver_path="./chromedriver-win32/chromedriver.exe",
             chrome_binary_path="./chrome-win32/chrome.exe",
-            start_url=self.start_url
+            start_url=self.start_url,
+            test_run_folder="/runs/"
         )
-
+        # TODO gandit o alternativa( asta e asa de final, la o adica in video nu ne incurca)
+        print("⏳ Waiting 25 seconds for browser to load...")
+        time.sleep(25)
         # Initialize agents
         self.whisper_agent = WhisperService()
-        self.decision_maker = DecisionMaker()
+        self.decision_maker = DecisionMaker(selenium_driver=self.execution_driver)
         self.executor_agent = ExecutorAgent(self.execution_driver)
-
         # Keep a full flow log for session summary
         self.session_actions = []
         self.session_start_time = None

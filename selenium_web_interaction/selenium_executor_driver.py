@@ -16,8 +16,9 @@ class SeleniumExecutorDriver:
     Focused on real cursor control, clicking, typing, and waiting.
     """
 
-    def __init__(self, chromedriver_path: str, chrome_binary_path: str, start_url: str,
-                 test_run_folder):
+    def __init__(self, chromedriver_path: str, chrome_binary_path: str,
+                 start_url: str,
+                 test_run_folder: str):
         """
         Initialize ChromeDriver with a visible window and optional starting URL.
         """
@@ -30,7 +31,7 @@ class SeleniumExecutorDriver:
         service = ChromeService(executable_path=chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.maximize_window()
-        self.arrow_cursor_img='./selenium_web_interaction/arrow_cursor.png'
+        self.arrow_cursor_img = './selenium_web_interaction/arrow_cursor.png'
         self.test_run_folder = test_run_folder
 
         # Load optional start URL
@@ -123,14 +124,16 @@ class SeleniumExecutorDriver:
         time.sleep(seconds)
 
     def screenshot(self, draw_cursor=False):
-        image_shoted = pyautogui.screenshot()
-
-        mouse_x, mouse_y = pyautogui.position()
-        if draw_cursor:
-            image_shoted.paste(self.arrow_cursor_img, (mouse_x, mouse_y))
+        image_shoted = pyautogui.screenshot()  # type: ignore
+        # TODO, am comentat asta pentru ca crapa.
+        # mouse_x, mouse_y = pyautogui.position()
+        # if draw_cursor:
+        #     image_shoted.paste(self.arrow_cursor_img, (mouse_x, mouse_y))
         return image_shoted
 
     def save_screenshot(self, image, filename: str):
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        path = os.path.join(self.test_run_folder,f'{now}_{filename}')
+        path = os.path.join(self.test_run_folder, f'{now}_{filename}')
+        # TODO Am adaugat asta sa nu crape, dar nu salveaza nimic.
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         image.save(path)

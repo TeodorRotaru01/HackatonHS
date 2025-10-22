@@ -1,18 +1,20 @@
 from coordination.coordinator import Coordinator
 import json
+import os
 
 if __name__ == "__main__":
-    coordinator = Coordinator(start_url="https://shop.example.com")
+    coordinator = Coordinator(start_url="https://www.saucedemo.com/v1/index.html")
 
     # Define the ordered voice commands (recorded files)
-    commands = [
-        "1_login_username.wav",
-        "2_login_password.wav",
-        "3_click_login.wav",
-        "4_search_product.wav",
-        "5_add_to_cart.wav",
-        "6_checkout.wav"
-    ]
+    # Path către folderul unde ai fișierele .wav
+    voice_dir = "voice_commands"
+
+    # Citește toate fișierele .wav din folder, sortate alfabetic
+    commands = sorted([
+        os.path.join(voice_dir, f)
+        for f in os.listdir(voice_dir)
+        if f.lower().endswith(".wav")
+    ])
 
     result = coordinator.run_voice_flow(commands)
 

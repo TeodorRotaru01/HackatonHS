@@ -1,15 +1,15 @@
 from models.widget_detector import WidgetDetector
 from openai_integration.openai_client import OpenAIClient
-from selenium_web_interaction.selenium_executor_driver import SeleniumExecutorDriver
+from selenium_web_interaction.selenium_executor_driver import \
+    SeleniumExecutorDriver
 from utils.BoundingBox import BoundingBox
 
 
 class ExecutorAgent:
     def __init__(self,
-                 execution_driver: SeleniumExecutorDriver,
-                 openai_agent: OpenAIClient):
+                 execution_driver: SeleniumExecutorDriver):
         self.execution_driver = execution_driver
-        self.open_ai_agent = openai_agent
+        self.open_ai_agent = OpenAIClient()
         self.YOLO_detector = WidgetDetector()
         system_prompt = """
         You are an Executor Agent that will be responsible of doing and completing actions that are provided in the plan.
@@ -26,6 +26,7 @@ class ExecutorAgent:
         self.action_type = None
         self.target = None
         self.value = None
+        self._init_action_set()
 
     def execute(self, actions):
         for action in actions:
@@ -61,35 +62,41 @@ class ExecutorAgent:
 
     def validation(self):
         valid_screenshot = self.execution_driver.screenshot(draw_cursor=True)
-        self.execution_driver.save_screenshot(valid_screenshot, f'Validation_screenshot_for_{self.action_type}')
-        validation_prompt= f"""
+        self.execution_driver.save_screenshot(valid_screenshot,
+                                              f'Validation_screenshot_for_{self.action_type}.png')
+        validation_prompt = f"""
         Considering the action was {self.action_type} that was supposed to complete the plan {self.action_list[self.action_type]}.
         Do you consider the action was completed?
         Respond only with Yes or No.
         """
-        val_response = self.open_ai_agent.send_message_with_images(validation_prompt, images=valid_screenshot)
+        val_response = self.open_ai_agent.send_message_with_images(
+            validation_prompt, images=valid_screenshot)
         return val_response
 
     def detect_ui_using_YOLO(self):
-        full_screenshot=self.execution_driver.screenshot()
-        boxes=self.YOLO_detector.predict(full_screenshot)
-        image_with_bbox=self.YOLO_detector.attach_bounding_boxes()
-        bounding_box=None
+        full_screenshot = self.execution_driver.screenshot()
+        boxes = self.YOLO_detector.predict(full_screenshot)
+        image_with_bbox = self.YOLO_detector.attach_bounding_boxes()
+        bounding_box = None
         detect_ui_prompt = f"""
-        Considering the action plan: {self.action_type}: {self.target}.
-        What would be the ID attached to the bounding box that would complete the action?
-        Return only the ID of the widget.
+        You are a vision-based detector agent.
+        You will receive an image showing several bounding boxes with numeric IDs overlaid.
+        The user wants to perform the action: {self.action_type} on target: {self.target}.
+        Return ONLY the numeric ID of the box corresponding to that target.
+        For example: 1
+        No explanation, no extra text.
         """
-        response = self.open_ai_agent.send_message_with_images(detect_ui_prompt, images=image_with_bbox)
+        response = self.open_ai_agent.send_message_with_images(
+            detect_ui_prompt, images=image_with_bbox)
         response = int(response)
         for id_b in boxes.keys():
             if id_b == response:
-                bounding_box = boxes[id]['bounding_box']
+                bounding_box = boxes[id_b]['bounding_box']
         self.last_bounding_box = BoundingBox(*bounding_box)
 
     def _init_action_set(self):
-        self.action_list={
+        self.action_list = {
             'detect': [self.detect_ui_using_YOLO, self.wait],
-            'click':  [self.move_cursor_to, self.click, self.wait],
+            'click': [self.move_cursor_to, self.click, self.wait],
             'type': [self.type_string_into, self.wait]
         }

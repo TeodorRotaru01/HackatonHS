@@ -18,9 +18,9 @@ class DecisionMaker:
         {"action": "click", "target": "username_input"}
     """
 
-    def __init__(self, model: str = "gpt-4o"):
+    def __init__(self, selenium_driver, model: str = "gpt-4o"):
         # Load environment variables
-        self.SeleniumExecutorDriver = None
+        self.SeleniumExecutorDriver = selenium_driver
 
         # Initialize OpenAI client
         self.client = OpenAIClient(model=model)
