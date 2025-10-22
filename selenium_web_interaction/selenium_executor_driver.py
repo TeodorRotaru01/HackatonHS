@@ -1,4 +1,3 @@
-import os
 import time
 import math
 from datetime import datetime
@@ -7,8 +6,9 @@ import pyautogui
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
-from PIL import ImageDraw, Image
 from utils.BoundingBox import BoundingBox
+import os
+
 
 class SeleniumExecutorDriver:
     """
@@ -58,11 +58,11 @@ class SeleniumExecutorDriver:
     # ----------------------------------------------------------
     # TODO wait for BoundingBox
     def move_cursor_to(
-        self,
-        bounding_box: Optional[BoundingBox] = None,
-        offset: Optional[Tuple[int, int]] = None,
-        direction: Optional[Tuple[float, float]] = None,
-        distance: Optional[float] = None,
+            self,
+            bounding_box: Optional[BoundingBox] = None,
+            offset: Optional[Tuple[int, int]] = None,
+            direction: Optional[Tuple[float, float]] = None,
+            distance: Optional[float] = None,
     ):
         """
         Move the OS cursor:
@@ -92,7 +92,8 @@ class SeleniumExecutorDriver:
             move_y = dy_norm * distance
 
             current_x, current_y = pyautogui.position()
-            pyautogui.moveTo(current_x + move_x, current_y + move_y, duration=0.3)
+            pyautogui.moveTo(current_x + move_x, current_y + move_y,
+                             duration=0.3)
             return
 
         else:
