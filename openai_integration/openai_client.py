@@ -7,7 +7,7 @@ from io import BytesIO
 from dotenv import load_dotenv
 
 load_dotenv()
-api_key = os.getenv("OPENAI_KEY")
+
 
 class OpenAIClient:
     def __init__(self, api_key: str = None, model: str = "gpt-4o"):
@@ -18,7 +18,8 @@ class OpenAIClient:
             api_key: OpenAI API key (if None, reads from OPENAI_API_KEY env variable)
             model: Model to use (default: gpt-4o, which supports vision)
         """
-        self.api_key = api_key
+        self.chat = None
+        self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("API key must be provided or set in OPENAI_API_KEY environment variable")
 
@@ -187,52 +188,3 @@ class OpenAIClient:
             'webp': 'image/webp'
         }
         return mime_types.get(extension.lower(), 'image/jpeg')
-
-
-# Example usage
-if __name__ == "__main__":
-    from PIL import Image
-
-    # Initialize the client
-    client = OpenAIClient()
-
-    # Example 1: Send text-only message
-    response = client.send_message("What is the capital of France?")
-    print("Text response:", response)
-
-    # Example 2: Send message with file path
-    response = client.send_message_with_images(
-        message="What's in this image?",
-        images="path/to/image.jpg"
-    )
-    print("File path response:", response)
-
-    # Example 3: Send message with PIL Image
-    pil_image = Image.open("path/to/image.jpg")
-    response = client.send_message_with_images(
-        message="Describe this image",
-        images=pil_image
-    )
-    print("PIL image response:", response)
-
-    # Example 4: Send message with multiple mixed images
-    pil_image1 = Image.new('RGB', (100, 100), color='red')
-    pil_image2 = Image.new('RGB', (100, 100), color='blue')
-
-    response = client.send_message_with_images(
-        message="Compare these images",
-        images=[
-            "path/to/image.jpg",  # File path
-            pil_image1,  # PIL Image
-            pil_image2  # PIL Image
-        ]
-    )
-    print("Mixed images response:", response)
-
-    # Example 5: Create and send an image on the fly
-    img = Image.new('RGB', (200, 200), color='green')
-    response = client.send_message_with_images(
-        message="What color is this?",
-        images=img
-    )
-    print("Generated image response:", response)

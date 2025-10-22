@@ -1,9 +1,15 @@
-import os
 import json
-from openai import OpenAI
+import logging
+import re
 from dotenv import load_dotenv
 
+from openai_integration.openai_client import OpenAIClient
+
+logger = logging.getLogger(__name__)
+
 load_dotenv()
+
+
 class DecisionMaker:
     """
     DecisionMaker interprets natural language (spoken or written)
@@ -12,15 +18,12 @@ class DecisionMaker:
         {"action": "click", "target": "username_input"}
     """
 
-    def __init__(self):
+    def __init__(self, model: str = "gpt-4o"):
         # Load environment variables
-        api_key = os.getenv("OPENAI_API_KEY")
-
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY is not defined in .env!")
+        self.SeleniumExecutorDriver = None
 
         # Initialize OpenAI client
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAIClient(model=model)
 
     def decide(self, text: str) -> dict:
         """
@@ -29,7 +32,7 @@ class DecisionMaker:
         """
 
         system_prompt = (
-        """
+            """
         You are the DecisionMaker Agent in an automated UI control system.
 
         Your goal is to analyze a user's spoken instruction and decide the next UI action to perform.
@@ -52,7 +55,8 @@ class DecisionMaker:
         Return a single JSON object with two keys:
         {
           "action": "<detect | click | type | wait | none>",
-          "target": "<name_of_ui_element_or_null>"
+          "target": "<name_of_ui_element_or_null>",
+          "value": "<string_value>"
         }
         """
         )
@@ -60,20 +64,34 @@ class DecisionMaker:
         user_prompt = f"User command: \"{text}\""
 
         try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.2
-            )
+            # 🖼️ Capture current screen directly from SeleniumExecutorDriver
+            screenshot = self.SeleniumExecutorDriver.screenshot(
+                draw_cursor=True)
 
-            content = response.choices[0].message.content.strip()
+            # 🔍 Send the text + image to GPT
+            response_text = self.client.send_message_with_images(
+                message=user_prompt,
+                images=screenshot,
+                system_prompt=system_prompt
+            ).strip()
 
-            # Try to parse the JSON response
-            return json.loads(content)
+            # Try parsing JSON output
+            clean_response = re.sub(r"^```[a-zA-Z]*\n?", "", response_text.strip())
+            clean_response = re.sub(r"```$", "", clean_response.strip())
 
+            # ✅ Try to parse JSON
+            try:
+                parsed = json.loads(clean_response)
+
+                # Normalize output (ensure it's always a list)
+                if isinstance(parsed, dict):
+                    parsed = [parsed]
+
+            except json.JSONDecodeError:
+                parsed = {"error": "Could not parse JSON",
+                          "raw_response": response_text}
+
+            return parsed
         except Exception as e:
-            print(f"Error in DecisionMaker: {e}")
-            return {"action": "none", "target": None}
+            logger.error(f"❌ DecisionMaker failed: {e}")
+            return {"action": "none", "target": None, "value": None}

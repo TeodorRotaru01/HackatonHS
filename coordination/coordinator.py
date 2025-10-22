@@ -3,7 +3,6 @@ from agents.decision_maker_agent import DecisionMaker
 from agents.executor_agent import ExecutorAgent
 import json
 from selenium_web_interaction.selenium_executor_driver import SeleniumExecutorDriver
-from datetime import datetime
 import time
 import logging
 
@@ -49,7 +48,7 @@ class Coordinator:
         logger.info("🎬 Starting multi-command voice flow...")
 
         for i, audio_path in enumerate(audio_commands, start=1):
-            logger.info(f"\n=== 🗣Executing voice command {i}/{len(audio_commands)} ===")
+            logger.info(f"\n=== Executing voice command {i}/{len(audio_commands)} ===")
 
             # Step 1: Transcribe voice
             text = self.whisper_agent.transcribe_audio(audio_path)
