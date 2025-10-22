@@ -1,11 +1,14 @@
+import os
 import time
 import math
+from datetime import datetime
 from typing import Optional, Tuple
 import pyautogui
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
-
+from PIL import ImageDraw, Image
+from utils.BoundingBox import BoundingBox
 
 class SeleniumExecutorDriver:
     """
@@ -13,7 +16,8 @@ class SeleniumExecutorDriver:
     Focused on real cursor control, clicking, typing, and waiting.
     """
 
-    def __init__(self, chromedriver_path: str, chrome_binary_path: str, start_url: str):
+    def __init__(self, chromedriver_path: str, chrome_binary_path: str, start_url: str,
+                 test_run_folder):
         """
         Initialize ChromeDriver with a visible window and optional starting URL.
         """
@@ -26,6 +30,8 @@ class SeleniumExecutorDriver:
         service = ChromeService(executable_path=chromedriver_path)
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.maximize_window()
+        self.arrow_cursor_img='./selenium_web_interaction/arrow_cursor.png'
+        self.test_run_folder = test_run_folder
 
         # Load optional start URL
         if start_url:
@@ -114,3 +120,16 @@ class SeleniumExecutorDriver:
     def wait(self, seconds: float = 2.0):
         """Pause execution for a number of seconds."""
         time.sleep(seconds)
+
+    def screenshot(self, draw_cursor=False):
+        image_shoted = pyautogui.screenshot()
+
+        mouse_x, mouse_y = pyautogui.position()
+        if draw_cursor:
+            image_shoted.paste(self.arrow_cursor_img, (mouse_x, mouse_y))
+        return image_shoted
+
+    def save_screenshot(self, image, filename: str):
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        path = os.path.join(self.test_run_folder,f'{now}_{filename}')
+        image.save(path)

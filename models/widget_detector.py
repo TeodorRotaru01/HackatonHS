@@ -15,7 +15,7 @@ class WidgetDetector():
         self.last_orig_img = None
         self.model = YOLO(self.YOLO_weights)
 
-    def predict(self, image, confidence_threshold=0.5, iou_threshold=0.5):
+    def predict(self, image, confidence_threshold=0.5, iou_threshold=0.3):
         results = self.model.predict(source=image,
                                      conf=confidence_threshold,
                                      device=self.device,
