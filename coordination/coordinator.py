@@ -14,65 +14,73 @@ class Coordinator:
     Whisper -> DecisionMaker -> ChromeController -> ExecutorAgent
     """
 
-    def __init__(self, start_url: str = "https://example.com/login"):
+    def __init__(self, start_url: str):
         """
-               Initialize all components and open the browser session.
-               """
+        Initialize browser session and AI agents.
+        """
         self.start_url = start_url
 
-        print("Initializing Coordinator components...")
-
-        # 1. Initialize Selenium + PyAutoGUI driver
+        # Initialize Selenium + PyAutoGUI controller
         self.execution_driver = SeleniumExecutorDriver(
             chromedriver_path="./chromedriver-win32/chromedriver.exe",
             chrome_binary_path="./chrome-win32/chrome.exe",
             start_url=self.start_url
         )
 
+        # Initialize agents
         self.whisper_agent = WhisperService()
         self.decision_maker = DecisionMaker()
-        self.executor_agent = ExecutorAgent()
+        self.executor_agent = ExecutorAgent(self.execution_driver)
 
-        # Runtime state
-        self.last_transcription = None
-        self.last_actions = None
-        self.execution_log = []
+        # Keep a full flow log for session summary
+        self.session_actions = []
+        self.session_start_time = None
 
-    def _log_prefix(self):
-        return f"[Orchestrator][{datetime.now().strftime('%H:%M:%S')}]"
-
-    def run_audio_command(self, audio_path: str):
+    # --------------------------------------------------------
+    # 🔁 Multi-command voice flow
+    # --------------------------------------------------------
+    def run_voice_flow(self, audio_commands: list[str]):
         """
-        Run a complete pipeline for one voice command:
-        1. Transcribe voice using Whisper
-        2. Interpret text into structured actions using GPT
-        3. Execute those actions in the browser
+        Run a sequence of voice commands (audio files) within the same browser session.
+        Each audio file is transcribed, parsed, and executed sequentially.
         """
 
-        start_time = time.time()
-        logger.info("🎙Step 1: Transcribing audio with Whisper...")
-        command_text = self.whisper_agent.transcribe_audio(audio_path)
-        logger.info(f"Transcribed command: {command_text}")
+        self.session_start_time = time.time()
+        logger.info("🎬 Starting multi-command voice flow...")
 
-        logger.info("Step 2: Interpreting command with DecisionMaker...")
-        actions = self.decision_maker.decide(command_text)
-        logger.info(f"Generated actions:\n{json.dumps(actions, indent=2)}")
+        for i, audio_path in enumerate(audio_commands, start=1):
+            logger.info(f"\n=== 🗣Executing voice command {i}/{len(audio_commands)} ===")
 
-        logger.info("🖱Step 3: Executing actions in browser...")
-        results = self.executor_agent.execute(actions)
+            # Step 1: Transcribe voice
+            text = self.whisper_agent.transcribe_audio(audio_path)
+            logger.info(f"Command text: {text}")
 
-        elapsed = time.time() - start_time
-        logger.info(f"Command executed successfully in {elapsed:.2f}s")
+            # Step 2: Parse command into actions
+            actions = self.decision_maker.decide(text)
+            logger.info(f"Parsed actions:\n{json.dumps(actions, indent=2)}")
+
+            # Step 3: Execute actions
+            results = self.executor_agent.execute(actions)
+
+            # Log result
+            self.session_actions.append({
+                "audio_file": audio_path,
+                "command_text": text,
+                "actions": actions,
+                "results": results
+            })
+
+        total_time = time.time() - self.session_start_time
+        logger.info(f"Completed {len(audio_commands)} voice commands in {total_time:.2f}s.")
 
         return {
-            "command_text": command_text,
-            "actions": actions,
-            "results": results,
-            "elapsed_time_sec": elapsed
+            "total_commands": len(audio_commands),
+            "session_duration_sec": total_time,
+            "executed": self.session_actions
         }
 
         # --------------------------------------------------------
-        # 🔚 Graceful shutdown
+        # Shutdown
         # --------------------------------------------------------
 
     def shutdown(self):
