@@ -4,6 +4,9 @@ from selenium_web_interaction.selenium_executor_driver import \
     SeleniumExecutorDriver
 from utils.BoundingBox import BoundingBox
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ExecutorAgent:
     def __init__(self,
@@ -30,31 +33,45 @@ class ExecutorAgent:
 
     def execute(self, actions):
         for action in actions:
-            self.action_type = action['action']
-            self.target = action['target']
-            self.value = action.get('value', '')
-        if self.action_type not in self.action_list:
-            raise Exception('Not a valid action')
-        else:
+            self.action_type = action.get('action')
+            self.target = action.get('target')
+            self.value = action.get('value', action.get('text', ''))
+
+            print(
+                f"\n Executing action: {self.action_type.upper()} on {self.target} | value='{self.value}'")
+
+            if self.action_type not in self.action_list:
+                print(f"Unknown action: {self.action_type}")
+                continue
+
             functions = self.action_list[self.action_type]
+
             for func in functions:
+                print(f"➡️ Running: {func.__name__}")
+                try:
+                    func()
+                except Exception as e:
+                    print(f"Error while executing {func.__name__}: {e}")
+                    continue
+
+                # validation excluded for wait action
                 if func != self.wait:
-                    func()
                     val_response = self.validation()
-                    if val_response == 'Yes':
-                        pass
-                    else:
-                        print('Action was not completed')
-                else:
-                    func()
+                    print(f"Validation response: {val_response}")
+                    if "yes" not in val_response.lower():
+                        print(
+                            f"Action {self.action_type} may not have completed properly.")
 
     def move_cursor_to(self):
+        print(f"🖱️ Moving cursor to: {self.last_bounding_box}")
         self.execution_driver.move_cursor_to(self.last_bounding_box)
 
     def type_string_into(self):
+        print(f"⌨️ Typing: '{self.value}'")
         self.execution_driver.type_string(self.value)
 
     def click(self):
+        print(f"🖱️ Clicking current position")
         self.execution_driver.click()
 
     def wait(self):
@@ -93,6 +110,7 @@ class ExecutorAgent:
             if id_b == response:
                 bounding_box = boxes[id_b]['bounding_box']
         self.last_bounding_box = BoundingBox(*bounding_box)
+        print(f"Detected bounding box: {self.last_bounding_box}")
 
     def _init_action_set(self):
         self.action_list = {

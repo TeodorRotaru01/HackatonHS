@@ -57,7 +57,7 @@ class SeleniumExecutorDriver:
     # ----------------------------------------------------------
     # 🖱️ CURSOR CONTROL
     # ----------------------------------------------------------
-    # TODO wait for BoundingBox
+    #
     def move_cursor_to(
             self,
             bounding_box: Optional[BoundingBox] = None,
