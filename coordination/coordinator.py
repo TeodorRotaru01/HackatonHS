@@ -5,6 +5,7 @@ import json
 from selenium_web_interaction.selenium_executor_driver import SeleniumExecutorDriver
 import time
 import logging
+from utils.AudioPlayer import play_audio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,8 +28,8 @@ class Coordinator:
             test_run_folder='runs',
         )
         # TODO gandit o alternativa( asta e asa de final, la o adica in video nu ne incurca)
-        print("⏳ Waiting 25 seconds for browser to load...")
-        time.sleep(25)
+        print("⏳ Waiting 5 seconds for browser to load...")
+        time.sleep(5)
         # Initialize agents
         self.whisper_agent = WhisperService()
         self.decision_maker = DecisionMaker(selenium_driver=self.execution_driver)
@@ -56,11 +57,14 @@ class Coordinator:
             text = self.whisper_agent.transcribe_audio(audio_path)
             logger.info(f"Command text: {text}")
 
-            # Step 2: Parse command into actions
+            # Step 2: Playing audio file
+            play_audio(audio_path)
+
+            # Step 3: Parse command into actions
             actions = self.decision_maker.decide(text)
             logger.info(f"Parsed actions:\n{json.dumps(actions, indent=2)}")
 
-            # Step 3: Execute actions
+            # Step 4: Execute actions
             results = self.executor_agent.execute(actions)
 
             # Log result
