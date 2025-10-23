@@ -5,6 +5,8 @@ import json
 from selenium_web_interaction.selenium_executor_driver import SeleniumExecutorDriver
 import time
 import logging
+from datetime import datetime
+import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,17 +20,19 @@ class Coordinator:
         Initialize browser session and AI agents.
         """
         self.start_url = start_url
-
-        # Initialize Selenium + PyAutoGUI controller
+        current_dir = os.getcwd()
+        now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.test_run_folder = os.path.join(current_dir, f'runs/{now}')
+        os.makedirs(self.test_run_folder, exist_ok=True)
         self.execution_driver = SeleniumExecutorDriver(
             chromedriver_path="./chromedriver-win32/chromedriver.exe",
             chrome_binary_path="./chrome-win32/chrome.exe",
             start_url=self.start_url,
-            test_run_folder='runs',
+            test_run_folder=self.test_run_folder,
         )
         # TODO gandit o alternativa( asta e asa de final, la o adica in video nu ne incurca)
-        print("⏳ Waiting 25 seconds for browser to load...")
-        time.sleep(25)
+        print("⏳ Waiting 5 seconds for browser to load...")
+        time.sleep(5)
         # Initialize agents
         self.whisper_agent = WhisperService()
         self.decision_maker = DecisionMaker(selenium_driver=self.execution_driver)
@@ -73,12 +77,17 @@ class Coordinator:
 
         total_time = time.time() - self.session_start_time
         logger.info(f"Completed {len(audio_commands)} voice commands in {total_time:.2f}s.")
-
-        return {
+        log_actions = {
             "total_commands": len(audio_commands),
             "session_duration_sec": total_time,
             "executed": self.session_actions
         }
+        log_actions.copy()
+
+        log_file = os.path.join(self.test_run_folder, f"final_results.json")
+        with open(log_file, "w") as f:
+            json.dump(log_actions, f, indent=2)
+        return log_actions
 
         # --------------------------------------------------------
         # Shutdown

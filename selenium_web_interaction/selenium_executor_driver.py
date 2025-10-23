@@ -19,7 +19,7 @@ class SeleniumExecutorDriver:
 
     def __init__(self, chromedriver_path: str, chrome_binary_path: str,
                  start_url: str,
-                 test_run_folder: str):
+                 test_run_folder):
         """
         Initialize ChromeDriver with a visible window and optional starting URL.
         """
@@ -33,13 +33,10 @@ class SeleniumExecutorDriver:
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.maximize_window()
         self.arrow_cursor_img = './selenium_web_interaction/arrow_cursor.png'
-        current_dir = os.getcwd()
-        self.test_run_folder = os.path.join(current_dir, test_run_folder)
-        os.makedirs(self.test_run_folder, exist_ok=True)
         self.arrow_img = Image.open('./selenium_web_interaction/cursor_arrow.png')
         self.arrow_cursor_img = self.arrow_img.resize((32, 32),
                                                              Image.LANCZOS)
-
+        self.test_run_folder = test_run_folder
         # Load optional start URL
         if start_url:
             self.load_url(start_url)
