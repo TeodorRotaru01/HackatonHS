@@ -94,6 +94,7 @@ class ExecutorAgent:
         full_screenshot = self.execution_driver.screenshot()
         boxes = self.YOLO_detector.predict(full_screenshot)
         image_with_bbox = self.YOLO_detector.attach_bounding_boxes()
+        self.execution_driver.save_screenshot(image_with_bbox,'YOLO_detection.png')
         bounding_box = None
         detect_ui_prompt = f"""
         You are a vision-based detector agent.

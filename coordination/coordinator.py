@@ -24,7 +24,7 @@ class Coordinator:
             chromedriver_path="./chromedriver-win32/chromedriver.exe",
             chrome_binary_path="./chrome-win32/chrome.exe",
             start_url=self.start_url,
-            test_run_folder="/runs/"
+            test_run_folder='runs',
         )
         # TODO gandit o alternativa( asta e asa de final, la o adica in video nu ne incurca)
         print("⏳ Waiting 25 seconds for browser to load...")

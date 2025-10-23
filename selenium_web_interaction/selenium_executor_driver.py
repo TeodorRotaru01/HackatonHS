@@ -3,6 +3,7 @@ import math
 from datetime import datetime
 from typing import Optional, Tuple
 import pyautogui
+from PIL import Image
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options
@@ -32,7 +33,12 @@ class SeleniumExecutorDriver:
         self.driver = webdriver.Chrome(service=service, options=options)
         self.driver.maximize_window()
         self.arrow_cursor_img = './selenium_web_interaction/arrow_cursor.png'
-        self.test_run_folder = test_run_folder
+        current_dir = os.getcwd()
+        self.test_run_folder = os.path.join(current_dir, test_run_folder)
+        os.makedirs(self.test_run_folder, exist_ok=True)
+        self.arrow_img = Image.open('./selenium_web_interaction/cursor_arrow.png')
+        self.arrow_cursor_img = self.arrow_img.resize((32, 32),
+                                                             Image.LANCZOS)
 
         # Load optional start URL
         if start_url:
@@ -124,16 +130,13 @@ class SeleniumExecutorDriver:
         time.sleep(seconds)
 
     def screenshot(self, draw_cursor=False):
-        image_shoted = pyautogui.screenshot()  # type: ignore
-        # TODO, am comentat asta pentru ca crapa.
-        # mouse_x, mouse_y = pyautogui.position()
-        # if draw_cursor:
-        #     image_shoted.paste(self.arrow_cursor_img, (mouse_x, mouse_y))
+        image_shoted = pyautogui.screenshot()
+        if draw_cursor:
+            mouse_x, mouse_y = pyautogui.position()
+            image_shoted.paste(self.arrow_cursor_img, (mouse_x, mouse_y), self.arrow_cursor_img)
         return image_shoted
 
     def save_screenshot(self, image, filename: str):
         now = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         path = os.path.join(self.test_run_folder, f'{now}_{filename}')
-        # TODO Am adaugat asta sa nu crape, dar nu salveaza nimic.
-        os.makedirs(os.path.dirname(path), exist_ok=True)
         image.save(path)
