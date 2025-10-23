@@ -86,11 +86,14 @@ class ExecutorAgent:
         The user wants to perform the action: {self.action_type} on target: {self.target}.
         Return ONLY the numeric ID of the box corresponding to that target.
         For example: 1
-        No explanation, no extra text.
+        Important: the numeric IDs are drawn **left side** of each bounding box.
+        That means that each number corresponds to the box immediately **to its right**.
+        No explanation, no extra text. Don't say a numeric id if you can't see it.
         """
         response = self.open_ai_agent.send_message_with_images(
             detect_ui_prompt, images=image_with_bbox)
         response = int(response)
+        print(f"Click on ID: {response}")
         for id_b in boxes.keys():
             if id_b == response:
                 bounding_box = boxes[id_b]['bounding_box']
