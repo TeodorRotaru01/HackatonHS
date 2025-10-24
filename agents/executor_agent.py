@@ -1,3 +1,5 @@
+import pyautogui
+
 from models.widget_detector import WidgetDetector
 from openai_integration.openai_client import OpenAIClient
 from selenium_web_interaction.selenium_executor_driver import \
@@ -75,11 +77,6 @@ class ExecutorAgent:
 
 
     def detect_ui_using_YOLO(self):
-        full_screenshot = self.execution_driver.screenshot()
-        boxes = self.YOLO_detector.predict(full_screenshot)
-        image_with_bbox = self.YOLO_detector.attach_bounding_boxes()
-        self.execution_driver.save_screenshot(image_with_bbox,f'YOLO_detection_{self.action_index}.png')
-        bounding_box = None
         detect_ui_prompt = f"""
         You are a vision-based detector agent.
         You will receive an image showing several bounding boxes with numeric IDs overlaid.
@@ -90,18 +87,33 @@ class ExecutorAgent:
         That means that each number corresponds to the box immediately **to its right**.
         No explanation, no extra text. Don't say a numeric id if you can't see it.
         """
-        response = self.open_ai_agent.send_message_with_images(
-            detect_ui_prompt, images=image_with_bbox)
-        response = int(response)
-        print(f"Click on ID: {response}")
-        for id_b in boxes.keys():
-            if id_b == response:
-                bounding_box = boxes[id_b]['bounding_box']
-        self.last_bounding_box = BoundingBox(*bounding_box)
+        max_retries = 0
+        target_achieved = False
+        while not target_achieved and max_retries < 3:
+            max_retries += 1
+            full_screenshot = self.execution_driver.screenshot()
+            boxes = self.YOLO_detector.predict(full_screenshot)
+            image_with_bbox = self.YOLO_detector.attach_bounding_boxes()
+            self.execution_driver.save_screenshot(image_with_bbox,f'YOLO_detection_{self.action_index}.png')
+            bounding_box = None
+            response = self.open_ai_agent.send_message_with_images(
+                detect_ui_prompt, images=image_with_bbox)
+            try:
+                response = int(response)
+                print(f"Click on ID: {response}")
+                for id_b in boxes.keys():
+                    if id_b == response:
+                        bounding_box = boxes[id_b]['bounding_box']
+                        target_achieved = True
+                self.last_bounding_box = BoundingBox(*bounding_box)
+            except:
+                pyautogui.press('end')
+                self.execution_driver.wait(1)
+                continue
 
     def _init_action_set(self):
         self.action_list = {
-            'detect': [self.detect_ui_using_YOLO, self.wait],
-            'click': [self.move_cursor_to, self.click, self.wait],
+            'detect': [self.detect_ui_using_YOLO, self.wait, self.move_cursor_to],
+            'click': [self.click, self.wait],
             'type': [self.type_string_into, self.wait]
         }
