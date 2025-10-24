@@ -1,3 +1,3 @@
 # HackatonHS
 
-Web Interactions using AI Agent.
+Web Interactions using AI Agents.
