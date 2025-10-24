@@ -31,7 +31,6 @@ class Coordinator:
             start_url=self.start_url,
             test_run_folder=self.test_run_folder,
         )
-        # TODO gandit o alternativa( asta e asa de final, la o adica in video nu ne incurca)
         print("⏳ Waiting 5 seconds for browser to load...")
         time.sleep(5)
         # Initialize agents

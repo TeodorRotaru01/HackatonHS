@@ -26,6 +26,7 @@ class SeleniumExecutorDriver:
 
         # --- Configure Chrome
         options = Options()
+        options.add_argument("--guest")
         options.binary_location = chrome_binary_path
         options.add_argument("--start-maximized")
 

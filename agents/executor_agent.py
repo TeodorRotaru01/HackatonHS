@@ -16,6 +16,7 @@ class ExecutorAgent:
         self.execution_driver = execution_driver
         self.open_ai_agent = OpenAIClient()
         self.YOLO_detector = WidgetDetector()
+        self._init_action_set()
         system_prompt = """
         You are an Executor Agent that will be responsible of doing and completing actions that are provided in the plan.
         You have to be simple and concise regarding the future prompts that will be provided in order to complete the actions.
@@ -31,7 +32,6 @@ class ExecutorAgent:
         self.action_type = None
         self.target = None
         self.value = None
-        self._init_action_set()
         self.action_index = None
 
     def execute(self, actions):
@@ -81,10 +81,10 @@ class ExecutorAgent:
         You are a vision-based detector agent.
         You will receive an image showing several bounding boxes with numeric IDs overlaid.
         The user wants to perform the action: {self.action_type} on target: {self.target}.
-        Return ONLY the numeric ID of the box corresponding to that target.
+        Return ONLY the numeric ID of the box corresponding to that target if the target is not visible, return 'NO VISIBLE'.
         For example: 1
         Important: the numeric IDs are drawn **left side** of each bounding box.
-        That means that each number corresponds to the box immediately **to its right**.
+        That means that each number corresponds to the box is located on **left side** of the box.
         No explanation, no extra text. Don't say a numeric id if you can't see it.
         """
         max_retries = 0
