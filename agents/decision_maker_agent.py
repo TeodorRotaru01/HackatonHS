@@ -18,9 +18,9 @@ class DecisionMaker:
         {"action": "click", "target": "username_input"}
     """
 
-    def __init__(self, model: str = "gpt-4o"):
+    def __init__(self, selenium_driver, model: str = "gpt-4o"):
         # Load environment variables
-        self.SeleniumExecutorDriver = None
+        self.SeleniumExecutorDriver = selenium_driver
 
         # Initialize OpenAI client
         self.client = OpenAIClient(model=model)
@@ -52,11 +52,10 @@ class DecisionMaker:
         - Base your reasoning only on the visual state (if provided) and the user instruction.
         
         OUTPUT FORMAT
-        Return a single JSON object with two keys:
+        Return a JSON array of objects, each describing one action. For example:
         {
-          "action": "<detect | click | type | wait | none>",
-          "target": "<name_of_ui_element_or_null>",
-          "value": "<string_value>"
+            {"action": "detect", "target": "username_field"},
+            {"action": "click", "target": "username_field"}
         }
         """
         )

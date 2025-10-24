@@ -27,8 +27,10 @@ class WhisperService:
             with open(audio_path, "rb") as audio_file:
                 transcript = self.client.audio.transcriptions.create(
                     model="whisper-1",
-                    file=audio_file
+                    file=audio_file,
+                    language="en"
                 )
+            print(f"Whisper: {transcript.text}")
             return transcript.text
         except Exception as e:
             print(f"Error while transcribing: {e}")

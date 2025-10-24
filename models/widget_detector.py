@@ -6,7 +6,7 @@ from PIL import Image
 load_dotenv()
 weights_path = os.getenv("YOLO_WEIGHTS")
 
-class WidgetDetector():
+class WidgetDetector:
     def __init__(self, device='cpu'):
         self.YOLO_weights = weights_path
         self.device = device
@@ -43,7 +43,7 @@ class WidgetDetector():
             x_min, y_min, w, h = det['bounding_box']
             x1, y1, x2, y2 = int(x_min), int(y_min), int(x_min + w), int(y_min + h)
             cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            cv2.putText(img, str(det_id), (x2 + 10, y1 + 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+            cv2.putText(img, str(det_id), (x1-20, (y1 + y2) // 2), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         pil = Image.fromarray(img_rgb)
         return pil

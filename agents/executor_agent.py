@@ -1,16 +1,22 @@
+import pyautogui
+
 from models.widget_detector import WidgetDetector
 from openai_integration.openai_client import OpenAIClient
-from selenium_web_interaction.selenium_executor_driver import SeleniumExecutorDriver
+from selenium_web_interaction.selenium_executor_driver import \
+    SeleniumExecutorDriver
 from utils.BoundingBox import BoundingBox
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ExecutorAgent:
     def __init__(self,
-                 execution_driver: SeleniumExecutorDriver,
-                 openai_agent: OpenAIClient):
+                 execution_driver: SeleniumExecutorDriver):
         self.execution_driver = execution_driver
-        self.open_ai_agent = openai_agent
+        self.open_ai_agent = OpenAIClient()
         self.YOLO_detector = WidgetDetector()
+        self._init_action_set()
         system_prompt = """
         You are an Executor Agent that will be responsible of doing and completing actions that are provided in the plan.
         You have to be simple and concise regarding the future prompts that will be provided in order to complete the actions.
@@ -26,26 +32,36 @@ class ExecutorAgent:
         self.action_type = None
         self.target = None
         self.value = None
+        self.action_index = None
 
     def execute(self, actions):
-        for action in actions:
-            self.action_type = action['action']
-            self.target = action['target']
-            self.value = action.get('value', '')
-        if self.action_type not in self.action_list:
-            raise Exception('Not a valid action')
-        else:
-            functions = self.action_list[self.action_type]
-            for func in functions:
-                if func != self.wait:
-                    func()
-                    val_response = self.validation()
-                    if val_response == 'Yes':
-                        pass
-                    else:
-                        print('Action was not completed')
-                else:
-                    func()
+        try:
+            for index, action in enumerate(actions):
+                self.action_index = index
+                self.action_type = action.get('action')
+                self.target = action.get('target')
+                self.value = action.get('value', action.get('text', ''))
+
+                print(
+                    f"\n Executing action: {self.action_type.upper()} on {self.target} | value='{self.value}'")
+
+                if self.action_type not in self.action_list:
+                    print(f"Unknown action: {self.action_type}")
+                    continue
+
+                functions = self.action_list[self.action_type]
+
+                for func in functions:
+                    print(f"➡️ Running: {func.__name__}")
+                    try:
+                        func()
+                    except Exception as e:
+                        print(f"Error while executing {func.__name__}: {e}")
+                        continue
+            return "Action Completed successfully"
+        except:
+            return "Error while executing actions"
+
 
     def move_cursor_to(self):
         self.execution_driver.move_cursor_to(self.last_bounding_box)
@@ -59,37 +75,45 @@ class ExecutorAgent:
     def wait(self):
         self.execution_driver.wait(1.5)
 
-    def validation(self):
-        valid_screenshot = self.execution_driver.screenshot(draw_cursor=True)
-        self.execution_driver.save_screenshot(valid_screenshot, f'Validation_screenshot_for_{self.action_type}')
-        validation_prompt= f"""
-        Considering the action was {self.action_type} that was supposed to complete the plan {self.action_list[self.action_type]}.
-        Do you consider the action was completed?
-        Respond only with Yes or No.
-        """
-        val_response = self.open_ai_agent.send_message_with_images(validation_prompt, images=valid_screenshot)
-        return val_response
 
     def detect_ui_using_YOLO(self):
-        full_screenshot=self.execution_driver.screenshot()
-        boxes=self.YOLO_detector.predict(full_screenshot)
-        image_with_bbox=self.YOLO_detector.attach_bounding_boxes()
-        bounding_box=None
         detect_ui_prompt = f"""
-        Considering the action plan: {self.action_type}: {self.target}.
-        What would be the ID attached to the bounding box that would complete the action?
-        Return only the ID of the widget.
+        You are a vision-based detector agent.
+        You will receive an image showing several bounding boxes with numeric IDs overlaid.
+        The user wants to perform the action: {self.action_type} on target: {self.target}.
+        Return ONLY the numeric ID of the box corresponding to that target if the target is not visible, return 'NO VISIBLE'.
+        For example: 1
+        Important: the numeric IDs are drawn **left side** of each bounding box.
+        That means that each number corresponds to the box is located on **left side** of the box.
+        No explanation, no extra text. Don't say a numeric id if you can't see it.
         """
-        response = self.open_ai_agent.send_message_with_images(detect_ui_prompt, images=image_with_bbox)
-        response = int(response)
-        for id_b in boxes.keys():
-            if id_b == response:
-                bounding_box = boxes[id]['bounding_box']
-        self.last_bounding_box = BoundingBox(*bounding_box)
+        max_retries = 0
+        target_achieved = False
+        while not target_achieved and max_retries < 3:
+            max_retries += 1
+            full_screenshot = self.execution_driver.screenshot()
+            boxes = self.YOLO_detector.predict(full_screenshot)
+            image_with_bbox = self.YOLO_detector.attach_bounding_boxes()
+            self.execution_driver.save_screenshot(image_with_bbox,f'YOLO_detection_{self.action_index}.png')
+            bounding_box = None
+            response = self.open_ai_agent.send_message_with_images(
+                detect_ui_prompt, images=image_with_bbox)
+            try:
+                response = int(response)
+                print(f"Click on ID: {response}")
+                for id_b in boxes.keys():
+                    if id_b == response:
+                        bounding_box = boxes[id_b]['bounding_box']
+                        target_achieved = True
+                self.last_bounding_box = BoundingBox(*bounding_box)
+            except:
+                pyautogui.press('end')
+                self.execution_driver.wait(1)
+                continue
 
     def _init_action_set(self):
-        self.action_list={
-            'detect': [self.detect_ui_using_YOLO, self.wait],
-            'click':  [self.move_cursor_to, self.click, self.wait],
+        self.action_list = {
+            'detect': [self.detect_ui_using_YOLO, self.wait, self.move_cursor_to],
+            'click': [self.click, self.wait],
             'type': [self.type_string_into, self.wait]
         }

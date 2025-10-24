@@ -3,3 +3,5 @@ selenium
 pyautogui
 openai
 python-dotenv
+gtts
+pygame
